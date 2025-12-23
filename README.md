@@ -42,10 +42,14 @@ Contrary to what's typically observed in high-income countries (where poorer com
 *Distribution of PM2.5 levels across different regions of Malaysia. The wealth-pollution relationship varies by geography, with urban centers showing the strongest correlation.*
 
 ### Interactive Map
-<video autoplay loop muted playsinline width="800">
-  <source src="https://github.com/user-attachments/assets/279a916b-d950-4d29-a98d-f249c34a6996" type="video/mp4">
-</video>
 
+
+<div align="center">
+  <video controls autoplay loop muted playsinline width="90%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <source src="https://github.com/user-attachments/assets/d762b497-9947-4a41-b08f-f937ea8f8cb7" type="video/mp4">
+    <p>Your browser doesn't support HTML5 video. <a href="https://github.com/user-attachments/assets/d762b497-9947-4a41-b08f-f937ea8f8cb7">Download the video</a> instead.</p>
+  </video>
+</div>
 *Explore the geographic distribution of pollution and wealth across Malaysia with an interactive map featuring district-level boundaries, hover tooltips, and multiple visualization modes (bubble map and heatmap).*
 
 ---
