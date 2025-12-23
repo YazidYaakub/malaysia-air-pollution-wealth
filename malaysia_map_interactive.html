@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malaysia Air Pollution & Wealth Analysis</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px 40px;
+            background: white;
+            border-bottom: 1px solid #e1e8ed;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            transition: transform 0.2s;
+            cursor: help;
+            position: relative;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-box:hover .stat-tooltip,
+        .control-group:hover .stat-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(-10px);
+        }
+
+        .stat-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(0);
+            background: rgba(44, 62, 80, 0.95);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            width: 250px;
+            text-align: left;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            line-height: 1.4;
+        }
+
+        .stat-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: rgba(44, 62, 80, 0.95);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-delta {
+            font-size: 0.85em;
+            color: #27ae60;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        .main-container {
+            padding: 30px 40px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input[type="range"] {
+            padding: 8px 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        select:hover, select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        button {
+            padding: 8px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        #map {
+            height: 700px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: white;
+        }
+
+        .custom-tooltip {
+            position: absolute;
+            background: rgba(44, 62, 80, 0.95);
+            color: white;
+            padding: 15px 18px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            z-index: 10000;
+            min-width: 200px;
+        }
+
+        .custom-tooltip.show {
+            opacity: 1;
+        }
+
+        .tooltip-header {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(52, 152, 219, 0.3);
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.95em;
+        }
+
+        .tooltip-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        .tooltip-value {
+            color: white;
+            font-weight: 600;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 200px;
+        }
+
+        .legend-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .legend-gradient {
+            height: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-width: 250px;
+        }
+
+        .info-box h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .info-box p {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            line-height: 1.5;
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            font-size: 1.2em;
+            color: #3498db;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        footer {
+            background: white;
+            padding: 30px 40px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            border-top: 1px solid #e1e8ed;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Malaysia: Air Pollution & Wealth Analysis</h1>
+        <p class="subtitle">Geographic visualization with district-level administrative boundaries</p>
+    </div>
+
+    <div class="stats-container" id="stats"></div>
+
+    <div class="main-container">
+        <div class="controls">
+
+
+            <div class="control-group">
+                <label>Basemap Style</label>
+                <select id="basemapStyle">
+                    <option value="dark">Dark (Kepler Style)</option>
+                    <option value="light">Light</option>
+                    <option value="satellite">Satellite</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Region</label>
+                <select id="regionFilter">
+                    <option value="all">All Regions</option>
+                </select>
+            </div>
+
+            <div class="control-group" style="position: relative;">
+                <label>Wealth Quartile</label>
+                <select id="quartileFilter">
+                    <option value="all">All Quartiles</option>
+                </select>
+                <div class="stat-tooltip" style="width: 300px; text-align: center; left: -25%;">
+                    The Relative Wealth Index (RWI) is divided into four equal groups (quartiles). Q1 represents the poorest 25% of the population, while Q4 represents the wealthiest 25%.
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Color Scheme</label>
+                <select id="colorScheme">
+                    <option value="RdYlBu">Red-Yellow-Blue</option>
+                    <option value="Viridis">Viridis</option>
+                    <option value="Plasma">Plasma</option>
+                    <option value="YlOrRd">Yellow-Orange-Red</option>
+                </select>
+            </div>
+
+            <div class="control-group" id="bubbleControls" style="display: flex;">
+                <label>Point Size: <span id="sizeValue">4</span>px</label>
+                <input type="range" id="pointSize" min="2" max="10" value="4" step="1">
+            </div>
+
+            <div class="control-group" id="bubbleOpacityControls" style="display: flex;">
+                <label>Point Opacity: <span id="opacityValue">70</span>%</label>
+                <input type="range" id="pointOpacity" min="10" max="100" value="70" step="10">
+            </div>
+
+            <div class="control-group">
+                <label>Find District</label>
+                <div style="display: flex;">
+                    <input type="text" id="searchDistrict" placeholder="e.g., Petaling" style="padding: 8px 12px; border: 2px solid #e1e8ed; border-radius: 6px 0 0 6px; border-right: none; font-size: 14px;">
+                    <button onclick="searchDistrict()" style="border-radius: 0 6px 6px 0;">Search</button>
+                </div>
+            </div>
+
+            <button onclick="resetView()">Reset View</button>
+            <button onclick="resetFilters()">Reset Filters</button>
+        </div>
+
+        <div style="position: relative;">
+            <div id="map"></div>
+            
+            <div class="legend" id="legend">
+                <div class="legend-title">PM2.5 (μg/m³)</div>
+                <div class="legend-gradient" id="legendGradient"></div>
+                <div class="legend-labels" id="legendLabels"></div>
+            </div>
+
+            <div class="info-box">
+                <h3>Interactive Map</h3>
+                <p>Hover over data points to see detailed pollution and wealth statistics for each location.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p><strong>Data Sources:</strong> Meta RWI (Relative Wealth Index) • WUSTL PM2.5 Satellite Data V6.GL.02.04</p>
+    </footer>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>Loading map data...</span>
+    </div>
+
+    <div class="custom-tooltip" id="tooltip"></div>
+
+    <script>
+        // File paths
+        const GEOJSON_FILE = 'geoBoundaries-MYS-ADM2.geojson';
+        const CSV_FILE = 'malaysia_rwi_pm25_merged.csv';
+
+        let map, boundariesLayer, pointsLayer, heatmapLayer, basemapLayer, searchHighlightLayer;
+        let geoData, csvData;
+        let currentColorScheme = 'RdYlBu';
+
+        let currentBasemap = 'dark';
+
+        const colorSchemes = {
+            'RdYlBu': d3.interpolateRdYlBu,
+            'Viridis': d3.interpolateViridis,
+            'Plasma': d3.interpolatePlasma,
+            'YlOrRd': d3.interpolateYlOrRd
+        };
+
+        const basemaps = {
+            'dark': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            'light': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'satellite': 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        };
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map', {
+                center: [4.2, 109.5],
+                zoom: 6,
+                zoomControl: true
+            });
+
+            // Add dark basemap (Kepler.gl style)
+            updateBasemap();
+
+            return map;
+        }
+
+        function updateBasemap() {
+            if (basemapLayer) {
+                map.removeLayer(basemapLayer);
+            }
+
+            const attribution = currentBasemap === 'dark' 
+                ? '© CARTO' 
+                : currentBasemap === 'satellite'
+                ? '© Esri'
+                : '© OpenStreetMap contributors';
+
+            basemapLayer = L.tileLayer(basemaps[currentBasemap], {
+                attribution: attribution,
+                maxZoom: 18
+            }).addTo(map);
+        }
+
+        // Load data
+        Promise.all([
+            d3.json(GEOJSON_FILE),
+            d3.csv(CSV_FILE)
+        ]).then(([geo, csv]) => {
+            console.log('Data loaded successfully');
+            
+            geoData = geo;
+            csvData = processCSV(csv);
+            // Assign quartiles to the full dataset once
+            calculateStatistics(csvData);
+            
+            document.getElementById('loading').style.display = 'none';
+            
+            initMap();
+            assignDistricts();
+            populateFilters();
+            addBoundaries();
+            updateVisualization();
+            updateLegend();
+            setupEventListeners();
+        }).catch(error => {
+            console.error('Error:', error);
+            document.getElementById('loading').innerHTML = `
+                <div style="color: #e74c3c;">
+                    <h3>Error loading data</h3>
+                    <p>Make sure files are in same directory and run with local server</p>
+                    <code>python3 -m http.server 8000</code>
+                </div>
+            `;
+        });
+
+        function processCSV(csv) {
+            const processed = csv.map(d => ({
+                latitude: +d.latitude,
+                longitude: +d.longitude,
+                rwi: +d.rwi,
+                pm25: +d.pm25,
+                error: +d.error,
+                region: d.region || 'Unknown',
+                district: null
+            }));
+            return processed;
+        }
+
+        function assignDistricts() {
+            if (!geoData || !csvData) return;
+            
+            console.log('Assigning districts to data points...');
+            
+            csvData.forEach(point => {
+                let assigned = false;
+                for (let feature of geoData.features) {
+                    const layer = L.geoJSON(feature);
+                    if (layer.getBounds().contains([point.latitude, point.longitude])) {
+                        point.district = feature.properties.shapeName || 'Unknown District';
+                        assigned = true;
+                        break;
+                    }
+                }
+                if (!assigned) {
+                    point.district = 'Unknown District';
+                }
+            });
+            
+            console.log('District assignment complete');
+        }
+
+        function calculateStatistics(data) {
+            if (data.length === 0) {
+                return {
+                    correlation: 0,
+                    totalPoints: 0,
+                    avgPM25: 0,
+                    maxPM25: 0,
+                    minPM25: 0,
+                    difference: 0,
+                    pctDiff: 0
+                };
+            }
+
+            const rwiValues = data.map(d => d.rwi);
+            const pm25Values = data.map(d => d.pm25);
+            
+            const rwiSorted = [...rwiValues].sort((a, b) => a - b);
+            const q1 = d3.quantile(rwiSorted, 0.25);
+            const q2 = d3.quantile(rwiSorted, 0.50);
+            const q3 = d3.quantile(rwiSorted, 0.75);
+            
+            data.forEach(d => {
+                if (d.rwi <= q1) d.quartile = 'Q1 (Poorest)';
+                else if (d.rwi <= q2) d.quartile = 'Q2 (Lower-Mid)';
+                else if (d.rwi <= q3) d.quartile = 'Q3 (Upper-Mid)';
+                else d.quartile = 'Q4 (Richest)';
+            });
+
+            const correlation = calculateCorrelation(rwiValues, pm25Values);
+            const q4Data = data.filter(d => d.quartile === 'Q4 (Richest)');
+            const q1Data = data.filter(d => d.quartile === 'Q1 (Poorest)');
+            const q4Mean = d3.mean(q4Data, d => d.pm25) || 0;
+            const q1Mean = d3.mean(q1Data, d => d.pm25) || 0;
+            
+            const difference = q4Mean - q1Mean;
+            const pctDiff = q1Mean !== 0 ? (difference / q1Mean) * 100 : 0;
+
+            return {
+                correlation: isNaN(correlation) ? 0 : correlation,
+                totalPoints: data.length,
+                avgPM25: d3.mean(pm25Values) || 0,
+                maxPM25: d3.max(pm25Values) || 0,
+                minPM25: d3.min(pm25Values) || 0,
+                difference: isNaN(difference) ? 0 : difference,
+                pctDiff: isNaN(pctDiff) ? 0 : pctDiff
+            };
+        }
+
+
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = progress * (end - start) + start;
+                if (end % 1 !== 0) { // if it's a float
+                    element.innerHTML = value.toFixed(3);
+                } else {
+                    element.innerHTML = Math.floor(value).toLocaleString();
+                }
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function displayStats(stats) {
+            const statsData = [
+                { 
+                    id: 'stat-correlation',
+                    label: 'Correlation', 
+                    value: stats.correlation, 
+                    delta: 'p < 0.001',
+                    tooltip: 'Pearson correlation coefficient (r) measures the strength of the linear relationship between wealth and air pollution. A value of 0.43 indicates a moderate positive correlation: wealthier areas tend to have higher pollution.'
+                },
+                { 
+                    id: 'stat-points',
+                    label: 'Data Points', 
+                    value: stats.totalPoints, 
+                    delta: 'Locations',
+                    tooltip: 'Total number of geographic locations analyzed across Malaysia, combining relative wealth index data with PM2.5 satellite measurements.'
+                },
+                { 
+                    id: 'stat-avg-pm25',
+                    label: 'Average PM2.5', 
+                    value: stats.avgPM25, 
+                    delta: 'μg/m³',
+                    tooltip: 'Mean PM2.5 concentration across all locations. WHO guideline is 5 μg/m³. All areas in this dataset exceed the recommended limit, indicating widespread air quality concerns.'
+                },
+                { 
+                    id: 'stat-wealth-gap',
+                    label: 'Wealth Gap Impact', 
+                    value: stats.difference, 
+                    delta: `+${stats.pctDiff.toFixed(0)}%`,
+                    tooltip: 'The richest quartile (Q4) experiences 34% higher PM2.5 pollution than the poorest quartile (Q1). This reverses the pattern seen in high-income countries, where wealth typically correlates with cleaner air.'
+                }
+            ];
+
+            const container = d3.select('#stats');
+            const boxes = container.selectAll('.stat-box')
+                .data(statsData, d => d.id)
+                .join('div')
+                .attr('class', 'stat-box');
+
+            boxes.html(d => `
+                <div class="stat-value" id="${d.id}">0</div>
+                <div class="stat-label">${d.label}</div>
+                <div class="stat-delta">${d.delta}</div>
+                <div class="stat-tooltip">${d.tooltip}</div>
+            `);
+
+            statsData.forEach(d => {
+                const element = document.getElementById(d.id);
+                if (element) {
+                    animateValue(element, 0, d.value, 1500);
+                }
+            });
+        }
+
+        function populateFilters() {
+            const regions = [...new Set(csvData.map(d => d.region))].sort();
+            const quartiles = [...new Set(csvData.map(d => d.quartile))].sort();
+
+            const regionFilter = d3.select('#regionFilter');
+            regionFilter.selectAll('option.dynamic')
+                .data(regions)
+                .join('option')
+                .attr('class', 'dynamic')
+                .attr('value', d => d)
+                .text(d => d);
+
+            const quartileFilter = d3.select('#quartileFilter');
+            quartileFilter.selectAll('option.dynamic')
+                .data(quartiles)
+                .join('option')
+                .attr('class', 'dynamic')
+                .attr('value', d => d)
+                .text(d => d);
+        }
+
+
+        function addBoundaries() {
+            boundariesLayer = L.geoJSON(geoData, {
+                style: feature => ({
+                    fillColor: 'transparent',
+                    fillOpacity: 0.05,
+                    color: currentBasemap === 'dark' ? '#4a5568' : '#95a5a6',
+                    weight: 1.5,
+                    opacity: 0.6
+                }),
+                onEachFeature: (feature, layer) => {
+                    const districtName = feature.properties.shapeName || 'Unknown District';
+                    
+                    layer.on({
+                        mouseover: function(e) {
+                            this.setStyle({
+                                weight: 2.5,
+                                color: '#3498db',
+                                fillOpacity: 0.15
+                            });
+                        },
+                        mouseout: function(e) {
+                            this.setStyle({
+                                weight: 1.5,
+                                color: currentBasemap === 'dark' ? '#4a5568' : '#95a5a6',
+                                fillOpacity: 0.05
+                            });
+                        }
+                    });
+                }
+            }).addTo(map);
+        }
+
+        function getFilteredData() {
+            const selectedRegion = document.getElementById('regionFilter').value;
+            const selectedQuartile = document.getElementById('quartileFilter').value;
+
+            return csvData.filter(d => {
+                const regionMatch = selectedRegion === 'all' || d.region === selectedRegion;
+                const quartileMatch = selectedQuartile === 'all' || d.quartile === selectedQuartile;
+                return regionMatch && quartileMatch;
+            });
+        }
+
+        function updateVisualization() {
+            const filteredData = getFilteredData();
+            displayStats(calculateStatistics(filteredData));
+            if (pointsLayer) {
+                map.removeLayer(pointsLayer);
+            }
+            addBubbleMap(filteredData);
+        }
+
+        function addBubbleMap(data) {
+            const colorScale = getColorScale();
+            const pointSize = +document.getElementById('pointSize').value;
+            const opacity = +document.getElementById('pointOpacity').value / 100;
+
+            if (pointsLayer) {
+                map.removeLayer(pointsLayer);
+            }
+
+            const markers = data.map(d => {
+                const marker = L.circleMarker([d.latitude, d.longitude], {
+                    radius: pointSize,
+                    fillColor: colorScale(d.pm25),
+                    fillOpacity: opacity,
+                    color: 'white',
+                    weight: 0.5,
+                    opacity: 1
+                });
+
+                marker.on('mouseover', function(e) {
+                    this.setStyle({ radius: pointSize * 1.5, weight: 2 });
+                    showTooltip(e, d);
+                });
+
+                marker.on('mouseout', function(e) {
+                    this.setStyle({ radius: pointSize, weight: 0.5 });
+                    hideTooltip();
+                });
+
+                marker.on('mousemove', function(e) {
+                    updateTooltipPosition(e);
+                });
+
+                return marker;
+            });
+
+            pointsLayer = L.layerGroup(markers).addTo(map);
+        }
+
+
+
+        function getPM25Context(pm25) {
+            if (pm25 <= 5) return { text: 'Good', color: '#2ecc71' };
+            if (pm25 <= 10) return { text: 'Moderate', color: '#f1c40f' };
+            if (pm25 <= 15) return { text: 'Unhealthy for Sensitive Groups', color: '#e67e22' };
+            if (pm25 <= 25) return { text: 'Unhealthy', color: '#e74c3c' };
+            if (pm25 <= 50) return { text: 'Very Unhealthy', color: '#9b59b6' };
+            return { text: 'Hazardous', color: '#7f8c8d' };
+        }
+
+        function showTooltip(e, d) {
+            const tooltip = document.getElementById('tooltip');
+            const pm25Context = getPM25Context(d.pm25);
+            
+            tooltip.innerHTML = `
+                <div class="tooltip-header">${d.district || 'Unknown District'}</div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Coordinates:</span>
+                    <span class="tooltip-value">${d.latitude.toFixed(3)}, ${d.longitude.toFixed(3)}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">PM2.5:</span>
+                    <span class="tooltip-value">${d.pm25.toFixed(2)} μg/m³ (<span style="color: ${pm25Context.color};">${pm25Context.text}</span>)</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Wealth (RWI):</span>
+                    <span class="tooltip-value">${d.rwi.toFixed(3)}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Quartile:</span>
+                    <span class="tooltip-value">${d.quartile}</span>
+                </div>
+                <div class="tooltip-row">
+                    <span class="tooltip-label">Uncertainty:</span>
+                    <span class="tooltip-value">±${d.error.toFixed(3)}</span>
+                </div>
+            `;
+            
+            tooltip.classList.add('show');
+            updateTooltipPosition(e);
+        }
+
+        function updateTooltipPosition(e) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.left = (e.originalEvent.pageX + 15) + 'px';
+            tooltip.style.top = (e.originalEvent.pageY - 15) + 'px';
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.classList.remove('show');
+        }
+
+        function getColorScale() {
+            const interpolator = colorSchemes[currentColorScheme];
+            return d3.scaleSequential(interpolator)
+                .domain([d3.max(csvData, d => d.pm25), d3.min(csvData, d => d.pm25)]);
+        }
+
+        function updateLegend() {
+            const colorScale = getColorScale();
+            const domain = colorScale.domain();
+
+            const gradient = document.getElementById('legendGradient');
+            const colors = [];
+            for (let i = 0; i <= 10; i++) {
+                const t = i / 10;
+                const value = domain[0] + t * (domain[1] - domain[0]);
+                colors.push(colorScale(value));
+            }
+            gradient.style.background = `linear-gradient(to right, ${colors.join(', ')})`;
+
+            const labels = document.getElementById('legendLabels');
+            labels.innerHTML = `
+                <span>${domain[1].toFixed(1)}</span>
+                <span>${((domain[0] + domain[1]) / 2).toFixed(1)}</span>
+                <span>${domain[0].toFixed(1)}</span>
+            `;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('basemapStyle').addEventListener('change', function() {
+                currentBasemap = this.value;
+                updateBasemap();
+                
+                // Update boundary colors based on basemap
+                if (boundariesLayer) {
+                    boundariesLayer.setStyle({
+                        color: currentBasemap === 'dark' ? '#4a5568' : '#95a5a6'
+                    });
+                }
+            });
+
+                        document.getElementById('regionFilter').addEventListener('change', updateVisualization);
+
+                        document.getElementById('quartileFilter').addEventListener('change', updateVisualization);
+
+            
+
+                        document.getElementById('colorScheme').addEventListener('change', function() {
+
+                            currentColorScheme = this.value;
+
+                            updateVisualization();
+
+                            updateLegend();
+
+                        });
+
+            
+
+                                    document.getElementById('pointSize').addEventListener('input', function() {
+
+            
+
+                                        document.getElementById('sizeValue').textContent = this.value;
+
+            
+
+                                        updateVisualization();
+
+            
+
+                                    });
+
+            
+
+                        
+
+            
+
+                                    document.getElementById('pointOpacity').addEventListener('input', function() {
+
+            
+
+                                        document.getElementById('opacityValue').textContent = this.value;
+
+            
+
+                                        updateVisualization();
+
+            
+
+                                    });
+        }
+
+        function resetView() {
+            map.setView([4.2, 109.5], 6);
+        }
+
+        function resetFilters() {
+            document.getElementById('regionFilter').value = 'all';
+            document.getElementById('quartileFilter').value = 'all';
+            updateVisualization();
+        }
+
+
+        function searchDistrict() {
+            const searchText = document.getElementById('searchDistrict').value.trim().toLowerCase();
+            if (searchText === '') return;
+
+            if (searchHighlightLayer) {
+                map.removeLayer(searchHighlightLayer);
+            }
+
+            const districtFeature = geoData.features.find(f => 
+                f.properties.shapeName.toLowerCase().includes(searchText)
+            );
+
+            if (districtFeature) {
+                const layer = L.geoJSON(districtFeature);
+                map.fitBounds(layer.getBounds());
+
+                searchHighlightLayer = L.geoJSON(districtFeature, {
+                    style: {
+                        fillColor: 'transparent',
+                        fillOpacity: 0,
+                        color: '#3498db',
+                        weight: 4
+                    },
+                    interactive: false
+                }).addTo(map);
+            } else {
+                alert('District not found. Please try a different name.');
+            }
+        }
+
+
+        function calculateCorrelation(x, y) {
+            const n = x.length;
+            const meanX = d3.mean(x);
+            const meanY = d3.mean(y);
+            
+            let num = 0, denX = 0, denY = 0;
+            for (let i = 0; i < n; i++) {
+                const dx = x[i] - meanX;
+                const dy = y[i] - meanY;
+                num += dx * dy;
+                denX += dx * dx;
+                denY += dy * dy;
+            }
+            
+            return num / Math.sqrt(denX * denY);
+        }
+    </script>
+</body>
+</html>
