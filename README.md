@@ -43,9 +43,9 @@ Contrary to what's typically observed in high-income countries (where poorer com
 
 ### Interactive Map
 ![Interactive Map]
-
-https://github.com/user-attachments/assets/279a916b-d950-4d29-a98d-f249c34a6996
-
+<video autoplay loop muted playsinline width="800">
+ <source src="https://github.com/user-attachments/assets/279a916b-d950-4d29-a98d-f249c34a6996" type="video/mp4">
+</video>
 *Explore the geographic distribution of pollution and wealth across Malaysia with an interactive map featuring district-level boundaries, hover tooltips, and multiple visualization modes (bubble map and heatmap).*
 
 ---
