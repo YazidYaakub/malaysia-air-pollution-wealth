@@ -121,6 +121,39 @@ Understanding these patterns is essential for policymakers to design interventio
 [LinkedIn](https://www.linkedin.com/in/yazidyaakub/)  
 
 ---
+## ⚠️ Important Notes
+
+### Data Year
+This analysis uses **2021 data** for both:
+- **PM2.5 measurements** - Annual average for 2021
+- **Relative Wealth Index (RWI)** - 2021 estimates
+
+Results reflect the wealth-pollution relationship as of 2021 and may not represent current conditions.
+
+### Running the Interactive Map
+
+The interactive map (`malaysia_map_interactive.html`) requires a local web server to function properly due to browser security restrictions.
+
+**To view the interactive map:**
+```bash
+# Navigate to the project directory
+cd malaysia-air-pollution-wealth
+
+# Start a local server (Python 3)
+python -m http.server 8000
+
+# Or for Python 2
+python -m SimpleHTTPServer 8000
+```
+
+Then open your browser and go to:
+```
+http://localhost:8000/malaysia_map_interactive.html
+```
+
+**Note:** Simply opening the HTML file directly (double-clicking) will not work due to CORS restrictions.
+
+---
 
 <p align="center">
   <i>Exploring the intersection of wealth and environmental health through data science</i>
